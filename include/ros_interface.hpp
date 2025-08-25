@@ -20,6 +20,37 @@
 namespace ros_wrapper {
 
 #ifdef ROS2_BUILD
+    using MsgType = std_msgs::msg::String;
+    using SrvType = std_srvs::srv::Trigger;
+    using MsgCallbackParamType = std_msgs::msg::String::SharedPtr;
+#else
+    using MsgType = std_msgs::String;
+    using SrvType = std_srvs::Trigger;
+    using MsgCallbackParamType = const std_msgs::String::ConstPtr&;
+#endif
+
+    // Helper to expose callback param type
+    template<typename T>
+    struct CallbackParamTypeHelper {};
+#ifdef ROS2_BUILD
+    template<>
+    struct CallbackParamTypeHelper<MsgType> {
+        using type = MsgType::SharedPtr;
+    };
+#else
+    template<>
+    struct CallbackParamTypeHelper<MsgType> {
+        using type = const MsgType::ConstPtr&;
+    };
+#endif
+
+    // Expose as alias for use in headers
+    using MsgType = MsgType;
+    using SrvType = SrvType;
+    using MsgCallbackParamType = CallbackParamTypeHelper<MsgType>::type;
+
+
+#ifdef ROS2_BUILD
 
     #define ROS_WRAPPER_LOG_STREAM(level, node, stream_args) \
     do { \
@@ -175,7 +206,7 @@ namespace ros_wrapper {
 
         template <typename T>
         void DeclareParamWithDescriptor(const std::string& name, const T& default_value,
-                                        const rcl_interfaces::msg::ParameterDescriptor& /*descriptor*/) {
+                                        /* no descriptor in ROS 1 */ int /*dummy*/ = 0) {
             (void)name; (void)default_value;
         }
 
@@ -190,10 +221,10 @@ namespace ros_wrapper {
             return node_handle_.advertise<MsgT>(topic, queue_size);
         }
 
-        template <typename MsgT>
+        template <typename MsgT, typename CallbackT>
         SubscriberType<MsgT> CreateSubscriber(
             const std::string& topic, int queue_size,
-            void (*callback)(const typename MsgT::ConstPtr&)) {
+            CallbackT callback) {
             return node_handle_.subscribe<MsgT>(topic, queue_size, callback);
         }
 
@@ -249,10 +280,17 @@ namespace ros_wrapper {
         }
 
         template <typename T>
+#ifdef ROS2_BUILD
         void DeclareParamWithDescriptor(const std::string& name, const T& default_value,
                                         const rcl_interfaces::msg::ParameterDescriptor& descriptor) {
             client_.template DeclareParamWithDescriptor<T>(name, default_value, descriptor);
         }
+#else
+        void DeclareParamWithDescriptor(const std::string& name, const T& default_value,
+                                        int dummy = 0) {
+            client_.template DeclareParamWithDescriptor<T>(name, default_value, dummy);
+        }
+#endif
 
         std::vector<std::string> GetStringListParam(const std::string& name) {
             return client_.GetStringListParam(name);
