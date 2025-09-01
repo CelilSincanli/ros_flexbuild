@@ -23,10 +23,12 @@ namespace ros_wrapper {
     using MsgType = std_msgs::msg::String;
     using SrvType = std_srvs::srv::Trigger;
     using MsgCallbackParamType = std_msgs::msg::String::SharedPtr;
+    // using ServiceCallbackReturnType = void;
 #else
     using MsgType = std_msgs::String;
     using SrvType = std_srvs::Trigger;
     using MsgCallbackParamType = const std_msgs::String::ConstPtr&;
+    // using ServiceCallbackReturnType = bool;
 #endif
 
     // Helper to expose callback param type
@@ -43,12 +45,6 @@ namespace ros_wrapper {
         using type = const MsgType::ConstPtr&;
     };
 #endif
-
-    // Expose as alias for use in headers
-    using MsgType = MsgType;
-    using SrvType = SrvType;
-    using MsgCallbackParamType = CallbackParamTypeHelper<MsgType>::type;
-
 
 #ifdef ROS2_BUILD
 
@@ -67,21 +63,19 @@ namespace ros_wrapper {
     template<typename MsgT>
     using SubscriberType = typename rclcpp::Subscription<MsgT>::SharedPtr;
 
-    template<typename ServiceT>
-    using ServiceRequestType = std::shared_ptr<typename ServiceT::Request>;
+    // template<typename ServiceT>
+    // using ServiceRequestType = std::shared_ptr<typename ServiceT::Request>;
 
-    template<typename ServiceT>
-    using ServiceResponseType = std::shared_ptr<typename ServiceT::Response>;
+    // template<typename ServiceT>
+    // using ServiceResponseType = std::shared_ptr<typename ServiceT::Response>;
 
     using TimerType = rclcpp::TimerBase::SharedPtr;
 
     using DurationType = std::chrono::milliseconds;
 
-    template<typename ServiceT>
-    using ServiceHandleType = typename rclcpp::Service<ServiceT>::SharedPtr;
+    // template<typename ServiceT>
+    // using ServiceHandleType = typename rclcpp::Service<ServiceT>::SharedPtr;
 
-
-    
     class RosClient {
     public:
         explicit RosClient(NodeHandle node) : node_(node) {}
@@ -127,12 +121,12 @@ namespace ros_wrapper {
             return node_->create_subscription<MsgT>(topic, queue_size, callback);
         }
 
-        template <typename ServiceT>
-        auto CreateService(
-            const std::string& service_name,
-            std::function<void(ServiceRequestType<ServiceT>, ServiceResponseType<ServiceT>)> callback) {
-            return node_->create_service<ServiceT>(service_name, callback);
-        }
+        // template <typename ServiceT>
+        // auto CreateService(
+        //     const std::string& service_name,
+        //     std::function<void(ServiceRequestType<ServiceT>, ServiceResponseType<ServiceT>)> callback) {
+        //     return node_->create_service<ServiceT>(service_name, callback);
+        // }
 
         rclcpp::Time Now() const {
             return node_->now();
@@ -145,6 +139,13 @@ namespace ros_wrapper {
         template <typename CallbackT>
         TimerType CreateTimer(DurationType interval, CallbackT&& callback) {
             return node_->create_wall_timer(interval, std::forward<CallbackT>(callback));
+        }
+
+        template <typename ObjT>
+        TimerType CreateTimer(DurationType interval, void (ObjT::*callback)(), ObjT* obj) {
+            // Automatically bind member function pointer and object for ROS 2
+            auto bound = std::bind(callback, obj);
+            return node_->create_wall_timer(interval, bound);
         }
 
     private:
@@ -168,18 +169,18 @@ namespace ros_wrapper {
     template<typename MsgT>
     using SubscriberType = ros::Subscriber;
 
-    template<typename ServiceT>
-    using ServiceRequestType = typename ServiceT::Request&;
+    // template<typename ServiceT>
+    // using ServiceRequestType = typename ServiceT::Request&;
 
-    template<typename ServiceT>
-    using ServiceResponseType = typename ServiceT::Response&;
+    // template<typename ServiceT>
+    // using ServiceResponseType = typename ServiceT::Response&;
 
     using TimerType = ros::Timer;
 
     using DurationType = ros::Duration;
 
-    template<typename ServiceT>
-    using ServiceHandleType = ros::ServiceServer;
+    // template<typename ServiceT>
+    // using ServiceHandleType = ros::ServiceServer;
 
     class RosClient {
     public:
@@ -228,12 +229,20 @@ namespace ros_wrapper {
             return node_handle_.subscribe<MsgT>(topic, queue_size, callback);
         }
 
-        template <typename ServiceT>
-        auto CreateService(
-            const std::string& service_name,
-            bool (*callback)(ServiceRequestType<ServiceT>, ServiceResponseType<ServiceT>)) {
-            return node_handle_.advertiseService(service_name, callback);
-        }
+        // template <typename ServiceT, typename ObjT>
+        // auto CreateService(
+        //     const std::string& service_name,
+        //     bool (ObjT::*callback)(ServiceRequestType<ServiceT>, ServiceResponseType<ServiceT>),
+        //     ObjT* obj) {
+        //     return node_handle_.advertiseService(service_name, callback, obj);
+        // }
+        // For free/static function callbacks
+        // template <typename ServiceT>
+        // auto CreateService(
+        //     const std::string& service_name,
+        //     bool (*callback)(ServiceRequestType<ServiceT>, ServiceResponseType<ServiceT>)) {
+        //     return node_handle_.advertiseService(service_name, callback);
+        // }
 
         ros::Time Now() const {
             return ros::Time::now();
@@ -243,9 +252,13 @@ namespace ros_wrapper {
             return node_handle_.getNamespace();
         }
 
-        template <typename CallbackT>
-        TimerType CreateTimer(DurationType interval, CallbackT callback) {
-            return node_handle_.createTimer(interval, callback);
+        // For timer callbacks with no arguments (e.g. void (ObjT::*)())
+        template <typename ObjT>
+        ros::Timer CreateTimer(ros::Duration interval, void (ObjT::*callback)(), ObjT* obj) {
+            auto wrapper = [obj, callback](const ros::TimerEvent&) {
+                (obj->*callback)();
+            };
+            return node_handle_.createTimer(interval, wrapper);
         }
 
     private:
@@ -253,6 +266,10 @@ namespace ros_wrapper {
     };
 
 #endif // ROS2_BUILD
+
+
+    // template<typename ServiceT>
+    // using ServiceCallbackType = ServiceCallbackReturnType (*)(ServiceRequestType<ServiceT>, ServiceResponseType<ServiceT>);
 
     #define ROS_LOG_INFO(node, stream_args)  ROS_WRAPPER_LOG_STREAM(INFO, node, stream_args)
     #define ROS_LOG_WARN(node, stream_args)  ROS_WRAPPER_LOG_STREAM(WARN, node, stream_args)
@@ -306,10 +323,10 @@ namespace ros_wrapper {
             return client_.template CreateSubscriber<MsgT>(topic, queue_size, callback);
         }
 
-        template <typename ServiceT, typename CallbackT>
-        auto CreateService(const std::string& service_name, CallbackT callback) {
-            return client_.template CreateService<ServiceT>(service_name, callback);
-        }
+        // template <typename ServiceT, typename CallbackT>
+        // auto CreateService(const std::string& service_name, CallbackT callback) {
+        //     return client_.template CreateService<ServiceT>(service_name, callback);
+        // }
 
         auto Now() const {
             return client_.Now();
@@ -323,10 +340,21 @@ namespace ros_wrapper {
         TimerType CreateTimer(DurationType interval, CallbackT callback) {
             return client_.CreateTimer(interval, callback);
         }
+        template <typename ObjT>
+        TimerType CreateTimer(DurationType interval, void (ObjT::*callback)(), ObjT* obj) {
+            return client_.CreateTimer(interval, callback, obj);
+        }
 
     private:
         Impl client_;
     };
+
+    inline DurationType getTimerDuration() { return DurationType(1000); } // 1000 ms = 1 second
+#ifdef ROS2_BUILD
+    inline DurationType getTimerDuration(int ms) { return DurationType(ms); }
+#else
+    inline DurationType getTimerDuration(int ms) { return DurationType(ms / 1000.0); }
+#endif
 
 } // namespace ros_wrapper
 

@@ -14,38 +14,38 @@ namespace ros_flexbuild {
             "greeting_topic", 10,
             std::bind(&FlexBuildTestNode::messageCallback, this, std::placeholders::_1)
         );
-        trigger_service_ = interface_->CreateService<SrvType>(
-            "trigger_service",
-            std::bind(&FlexBuildTestNode::triggerServiceCallback, this, std::placeholders::_1, std::placeholders::_2)
-        );
+        // trigger_service_ = interface_->CreateService<SrvType>(
+        //     "trigger_service",
+        //     std::bind(&FlexBuildTestNode::triggerServiceCallback, this, std::placeholders::_1, std::placeholders::_2)
+        // );
 #else
         publisher_ = interface_->CreatePublisher<MsgType>("greeting_topic", 10);
         subscriber_ = interface_->CreateSubscriber<MsgType>(
             "greeting_topic", 10,
             boost::bind(&FlexBuildTestNode::messageCallback, this, _1)
         );
-        trigger_service_ = interface_->CreateService<SrvType>(
-            "trigger_service",
-            &FlexBuildTestNode::triggerServiceCallback
-        );
+        
+        // trigger_service_ = interface_->CreateService<SrvType>(
+        //     "trigger_service",
+        //     &FlexBuildTestNode::triggerServiceCallback,
+        //     this
+        // );
 #endif
-
         timer_ = interface_->CreateTimer(
-            ros_wrapper::DurationType(1000),
-            std::bind(&FlexBuildTestNode::publishMessage, this)
+            ros_wrapper::getTimerDuration(100),
+            &FlexBuildTestNode::publishMessage,
+            this
         );
     }
 
     void FlexBuildTestNode::publishMessage() {
-#ifdef ROS2_BUILD
-        auto msg = std::make_shared<MsgType>();
-        msg->data = "Hello from ros_flexbuild!";
-        publisher_->publish(*msg);
-#else
         MsgType msg;
         msg.data = "Hello from ros_flexbuild!";
-        publisher_.publish(msg);
-#endif
+        #ifdef ROS2_BUILD
+                publisher_->publish(msg);
+        #else
+                publisher_.publish(msg);
+        #endif
     }
 
 #ifdef ROS2_BUILD
@@ -53,30 +53,30 @@ namespace ros_flexbuild {
         ROS_LOG_INFO(node_, "Received: '" << msg->data << "'");
     }
 
-    void FlexBuildTestNode::triggerServiceCallback(
-        ros_wrapper::ServiceRequestType<SrvType> request,
-        ros_wrapper::ServiceResponseType<SrvType> response)
-    {
-        (void)request;
-        response->success = true;
-        response->message = "Trigger service called!";
-        ROS_LOG_INFO(node_, "Trigger service was called.");
-    }
+    // ros_wrapper::ServiceCallbackReturnType FlexBuildTestNode::triggerServiceCallback(
+    //     ros_wrapper::ServiceRequestType<SrvType> request,
+    //     ros_wrapper::ServiceResponseType<SrvType> response)
+    // {
+    //     (void)request;
+    //     response->success = true;
+    //     response->message = "Trigger service called!";
+    //     ROS_LOG_INFO(node_, "Trigger service was called.");
+    // }
 #else
     void FlexBuildTestNode::messageCallback(const MsgType::ConstPtr& msg) {
         ROS_LOG_INFO(node_, "Received: '" << msg->data << "'");
     }
 
-    bool FlexBuildTestNode::triggerServiceCallback(
-        ros_wrapper::ServiceRequestType<SrvType> request,
-        ros_wrapper::ServiceResponseType<SrvType> response)
-    {
-        (void)request;
-        response.success = true;
-        response.message = "Trigger service called!";
-        ROS_INFO("Trigger service was called.");
-        return true;
-    }
+    // ros_wrapper::ServiceCallbackReturnType FlexBuildTestNode::triggerServiceCallback(
+    //     ros_wrapper::ServiceRequestType<SrvType> request,
+    //     ros_wrapper::ServiceResponseType<SrvType> response)
+    // {
+    //     (void)request;
+    //     response.success = true;
+    //     response.message = "Trigger service called!";
+    //     ROS_INFO("Trigger service was called.");
+    //     return true;
+    // }
 #endif
 
 } // namespace ros_flexbuild

@@ -15,9 +15,9 @@ public:
 
 private:
     void messageCallback(ros_wrapper::MsgCallbackParamType msg);
-    static bool triggerServiceCallback(
-        ros_wrapper::ServiceRequestType<SrvType> request,
-        ros_wrapper::ServiceResponseType<SrvType> response);
+    // ros_wrapper::ServiceCallbackReturnType triggerServiceCallback(
+    //     ros_wrapper::ServiceRequestType<SrvType> request,
+    //     ros_wrapper::ServiceResponseType<SrvType> response);
 
     void publishMessage();
 
@@ -25,7 +25,7 @@ private:
     std::shared_ptr<ros_wrapper::RosInterface<>> interface_;
     ros_wrapper::PublisherType<MsgType> publisher_;
     ros_wrapper::SubscriberType<MsgType> subscriber_;
-    ros_wrapper::ServiceHandleType<SrvType> trigger_service_;
+    // ros_wrapper::ServiceHandleType<SrvType> trigger_service_;
     ros_wrapper::TimerType timer_;
 };
 
