@@ -39,7 +39,8 @@ private:
     ros_wrapper::PublisherType<MsgType> publisher_;
     ros_wrapper::SubscriberType<MsgType> subscriber_;
     ros_wrapper::TimerType timer_;
-    ros_wrapper::ServiceServer<SrvType> service_;
+    ros_wrapper::ServiceServer<SrvType> service_server_;
+    ros_wrapper::ServiceClient<SrvType> service_client_;
 };
 
 }  // namespace ros_flexbuild

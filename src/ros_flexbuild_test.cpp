@@ -14,12 +14,14 @@ namespace ros_flexbuild {
             ros_wrapper::bind(&FlexBuildTestNode::messageCallback, this, ros_wrapper::_1)
         );
 
-        service_ = interface_->CreateService<SrvType>(
-            "trigger_service", 
+        service_server_ = interface_->CreateService<SrvType>(
+            "trigger_server", 
             ros_wrapper::bind(&FlexBuildTestNode::triggerServiceCallback, this, ros_wrapper::_1, ros_wrapper::_2)
         );
 
-        timer_ = interface_->CreateTimer(
+        service_client_ = interface_->CreateServiceClient<SrvType>("trigger_server");
+
+         timer_ = interface_->CreateTimer(
             ros_wrapper::getTimerDuration(100),
             &FlexBuildTestNode::publishMessage,
             this
@@ -29,12 +31,35 @@ namespace ros_flexbuild {
     void FlexBuildTestNode::publishMessage() {
         MsgType msg;
         msg.data = "Hello from ros_flexbuild!";
+
         #ifdef ROS2_BUILD
-                publisher_->publish(msg);
-        #else
-                publisher_.publish(msg);
+            publisher_->publish(msg);
+
+            // ROS2 service client async call
+            std::shared_ptr<std_srvs::srv::Trigger::Request> request = std::make_shared<std_srvs::srv::Trigger::Request>();
+            
+            // Start async request without blocking the main thread
+            if (service_client_->wait_for_service(std::chrono::milliseconds(10))) {
+                auto result = service_client_->async_send_request(request);
+                // Do not block, just initiate the request and keep going
+            } else {
+                ROS_LOG_WARN(node_, "Service not available. Skipping service call.");
+            }
+
+        #else // ROS1
+            publisher_.publish(msg);
+
+            // ROS1 service client call (non-blocking)
+            std_srvs::Trigger::Request request;
+            if (service_client_.exists()) {
+                // In ROS1, we call synchronously, but you can modify this for async if needed
+                service_client_.call(request);
+            } else {
+                ROS_LOG_WARN(node_, "Service not available. Skipping service call.");
+            }
         #endif
     }
+
 
     #ifdef ROS2_BUILD
         void FlexBuildTestNode::messageCallback(const MsgType::SharedPtr msg) {
@@ -60,7 +85,7 @@ namespace ros_flexbuild {
             (void)request;
             response.success = true;
             response.message = "Trigger service called!";
-            ROS_INFO("Trigger service was called.");
+            ROS_LOG_INFO(node_, "Trigger service was called.");
             return true;
         }
     #endif
