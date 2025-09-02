@@ -9,7 +9,10 @@ def generate_launch_description():
             name='flexbuild_node',
             output='screen',
             parameters=[{
-                'greeting_target': 'world'
+                'greeting_target': 'world',
+                'service_server_name': 'trigger_server_service',
+                'server_client_name': 'trigger_client_service',
+                'timer_period': 100 #ms
             }]
         )
     ])

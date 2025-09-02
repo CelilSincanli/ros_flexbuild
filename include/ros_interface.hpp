@@ -48,7 +48,7 @@ namespace ros_wrapper {
     
     // Service Client for ROS1
     template <typename ServiceT>
-    using ServiceClient = ros::ServiceClient;
+    using ServiceClient = typename ros::ServiceClient;
 #endif
 
 // Placeholders for ROS1 and ROS2
@@ -198,7 +198,7 @@ namespace ros_wrapper {
     using NodeHandle = ros::NodeHandle*;
 
     template<typename MsgT>
-    using PublisherType = ros::Publisher;
+    using PublisherType = ros::Publisher*; // Now it's a pointer type
 
     template<typename MsgT>
     using SubscriberType = ros::Subscriber;
@@ -248,7 +248,7 @@ namespace ros_wrapper {
 
         template <typename MsgT>
         PublisherType<MsgT> CreatePublisher(const std::string& topic, int queue_size) {
-            return node_handle_.advertise<MsgT>(topic, queue_size);
+            return new ros::Publisher(node_handle_.advertise<MsgT>(topic, queue_size));
         }
 
         template <typename MsgT, typename CallbackT>

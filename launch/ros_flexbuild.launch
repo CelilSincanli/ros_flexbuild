@@ -1,5 +1,8 @@
 <launch>
     <node pkg="ros_flexbuild" type="ros_test_node" name="flexbuild_node" output="screen">
         <param name="greeting_target" value="world"/>
+        <param name="service_server_name" value="trigger_server_service"/>
+        <param name="server_client_name" value="trigger_client_service"/>
+        <param name="timer_period" value="100"/> <!-- in milliseconds -->
     </node>
 </launch>
