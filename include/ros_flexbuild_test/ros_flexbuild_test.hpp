@@ -5,19 +5,32 @@
 
 namespace ros_flexbuild {
 
-// Use type aliases from ros_interface.hpp for generic code
-using MsgType = ros_wrapper::MsgType;
-using SrvType = ros_wrapper::SrvType;
+#ifdef ROS2_BUILD
+    using MsgType = std_msgs::msg::String;
+    using SrvType = std_srvs::srv::Trigger;
+    using MsgCallbackParamType = std_msgs::msg::String::SharedPtr;
+#else
+    using MsgType = std_msgs::String;
+    using SrvType = std_srvs::Trigger;
+    using MsgCallbackParamType = const std_msgs::String::ConstPtr&;
+#endif
 
 class FlexBuildTestNode {
 public:
     FlexBuildTestNode(ros_wrapper::NodeHandle node);
 
 private:
-    void messageCallback(ros_wrapper::MsgCallbackParamType msg);
-    // ros_wrapper::ServiceCallbackReturnType triggerServiceCallback(
-    //     ros_wrapper::ServiceRequestType<SrvType> request,
-    //     ros_wrapper::ServiceResponseType<SrvType> response);
+    void messageCallback(MsgCallbackParamType msg);
+
+    #ifdef ROS2_BUILD
+        void triggerServiceCallback(
+            ros_wrapper::ServiceRequestType<SrvType> request,
+            ros_wrapper::ServiceResponseType<SrvType> response);
+    #else
+        bool triggerServiceCallback(
+            ros_wrapper::ServiceRequestType<SrvType> request,
+            ros_wrapper::ServiceResponseType<SrvType> response);
+    #endif
 
     void publishMessage();
 
@@ -25,8 +38,8 @@ private:
     std::shared_ptr<ros_wrapper::RosInterface<>> interface_;
     ros_wrapper::PublisherType<MsgType> publisher_;
     ros_wrapper::SubscriberType<MsgType> subscriber_;
-    // ros_wrapper::ServiceHandleType<SrvType> trigger_service_;
     ros_wrapper::TimerType timer_;
+    ros_wrapper::ServiceServer<SrvType> service_;
 };
 
 }  // namespace ros_flexbuild
