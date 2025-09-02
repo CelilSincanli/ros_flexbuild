@@ -12,6 +12,10 @@ namespace ros_flexbuild {
         std::string server_client_name = interface_->DeclareAndGetParam("server_client_name", std::string("trigger_client_service"));
         ROS_LOG_WARN(node_, "Server client name: " << server_client_name);
 
+        // Get timer period from param, default to 100 ms
+        int timer_period = interface_->DeclareAndGetParam("timer_period", 100);
+        ROS_LOG_WARN(node_, "Timer period: " << timer_period << " ms");
+
         publisher_ = interface_->CreatePublisher<MsgType>("greeting_topic", 10);
         subscriber_ = interface_->CreateSubscriber<MsgType>(
             "greeting_topic", 10,
@@ -25,8 +29,8 @@ namespace ros_flexbuild {
 
         service_client_ = interface_->CreateServiceClient<SrvType>(server_client_name);
 
-         timer_ = interface_->CreateTimer(
-            ros_wrapper::getTimerDuration(100),
+        timer_ = interface_->CreateTimer(
+            ros_wrapper::getTimerDuration(timer_period),
             &FlexBuildTestNode::publishMessage,
             this
         );
