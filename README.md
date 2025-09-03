@@ -39,6 +39,6 @@ The project includes Dockerfiles for building and testing in isolated ROS 1 and 
 ## Notes
 
 - The Dockerfiles automatically build the workspace and set up the environment.
-- You can select the timer period in milliseconds using the provided API.
+- You can select the timer period in milliseconds using the provided yaml.
 - Launch files and entrypoints are configured for both ROS 1 and ROS 2.
 
