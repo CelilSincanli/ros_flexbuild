@@ -40,8 +40,8 @@ namespace ros_flexbuild {
         MsgType msg;
         msg.data = "Hello from ros_flexbuild!";
         ROS_LOG_WARN(node_, "Hello from ros_flexbuild!");
+        publisher_->publish(msg);
         #ifdef ROS2_BUILD
-            publisher_->publish(msg);
 
             std::shared_ptr<std_srvs::srv::Trigger::Request> request = std::make_shared<std_srvs::srv::Trigger::Request>();
             
@@ -52,8 +52,6 @@ namespace ros_flexbuild {
             }
 
         #else
-            publisher_->publish(msg);
-
             std_srvs::Trigger::Request request;
             std_srvs::Trigger::Response response;
 
@@ -94,9 +92,12 @@ namespace ros_flexbuild {
         bool FlexBuildTestNode::triggerServiceCallback(
             ros_wrapper::ServiceRequestType<SrvType> request,
             ros_wrapper::ServiceResponseType<SrvType> response) {
+
             (void)request;
             response.success = true;
             response.message = "Trigger service called!";
+
+
             ROS_LOG_INFO(node_, "Trigger service was called.");
             return true;
         }
