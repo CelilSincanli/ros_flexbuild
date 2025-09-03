@@ -40,7 +40,7 @@ if(catkin_FOUND)
     target_include_directories(ros_flexbuild INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(ros_flexbuild INTERFACE ${catkin_LIBRARIES})
 
-    add_executable(ros_test_node test/ros_flex_test.cpp)
+    add_executable(ros_test_node src/main.cpp src/ros_flexbuild_test.cpp)
     target_link_libraries(ros_test_node ${catkin_LIBRARIES})
     add_dependencies(ros_test_node ${catkin_EXPORTED_TARGETS})
 
@@ -86,6 +86,9 @@ elseif(rclcpp_FOUND)
     )
     install(DIRECTORY launch/
       DESTINATION share/${PROJECT_NAME}/launch
+    )
+    install(FILES package.xml
+      DESTINATION share/${PROJECT_NAME}
     )
 
     ament_package()
