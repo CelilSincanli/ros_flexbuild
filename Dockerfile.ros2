@@ -1,0 +1,38 @@
+FROM ros:humble
+
+# install ros package
+RUN apt-get update && apt-get install -y \
+      python3-colcon-common-extensions \
+      build-essential \
+      ros-${ROS_DISTRO}-std-msgs \
+      ros-${ROS_DISTRO}-std-srvs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a workspace directory
+WORKDIR /ros2_ws
+
+# Copy the package source code into the workspace
+COPY ./ /catkin_ws/src/ros_flexbuild
+
+# Source the ROS 2 environment
+SHELL ["/bin/bash", "-c"]
+
+# Debugging: List the contents of the ros_flexbuild directory to check if the file exists
+RUN ls -l /catkin_ws/src/ros_flexbuild
+
+# Copy the correct package.xml for ROS 2
+RUN cp /catkin_ws/src/ros_flexbuild/package.ros.xml /catkin_ws/src/ros_flexbuild/package.xml
+
+# Build the ROS 2 workspace
+RUN rm -rf /catkin_ws/build/ /catkin_ws/install/ /catkin_ws/log/
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
+    colcon build --symlink-install
+
+# Delete both package.ros2.xml and package.ros.xml after build
+RUN rm -f /catkin_ws/src/ros_flexbuild/package.ros2.xml /catkin_ws/src/ros_flexbuild/package.ros.xml
+
+# Add source command to .bashrc for ROS 2
+RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /root/.bashrc
+
+# Source the built workspace and set the entrypoint to run the package
+ENTRYPOINT ["/bin/bash", "-c", "source install/setup.bash && ros2 run ros_flexbuild ros2_test_node " ]
