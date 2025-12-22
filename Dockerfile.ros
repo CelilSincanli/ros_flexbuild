@@ -1,0 +1,46 @@
+FROM ros:noetic
+
+# Install build tools and dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    python3-catkin-tools \
+    ros-${ROS_DISTRO}-roscpp \
+    ros-${ROS_DISTRO}-std-msgs \
+    ros-${ROS_DISTRO}-std-srvs \
+    ros-${ROS_DISTRO}-rosbash \
+    ros-${ROS_DISTRO}-roslaunch \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /catkin_ws/src
+# Set workspace
+WORKDIR /catkin_ws
+
+# Copy source code from the current context
+COPY ./ /catkin_ws/src/ros_flexbuild
+
+# Debugging: List the contents of the ros_flexbuild directory to check if the file exists
+RUN ls -l /catkin_ws/src/ros_flexbuild
+
+# Copy the correct package.xml for ROS 1
+RUN cp /catkin_ws/src/ros_flexbuild/package.ros.xml /catkin_ws/src/ros_flexbuild/package.xml
+
+# Source ROS environment
+SHELL ["/bin/bash", "-c"]
+
+# Build the workspace with catkin build
+RUN source /opt/ros/${ROS_DISTRO}/setup.bash && \
+    catkin build
+
+# Delete both package.ros2.xml and package.xml after build
+RUN rm -f /catkin_ws/src/ros_flexbuild/package.ros2.xml /catkin_ws/src/ros_flexbuild/package.ros.xml
+
+# Append the ROS setup script to .bashrc for all future bash sessions in the container
+RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /root/.bashrc
+RUN echo "source /catkin_ws/devel/setup.bash" >> /root/.bashrc
+
+# Source the workspace and run the node
+ENV LD_LIBRARY_PATH=/opt/ros/${ROS_DISTRO}/lib:/catkin_ws/devel/lib:$LD_LIBRARY_PATH
+
+EXPOSE 11311
+
+ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/${ROS_DISTRO}/setup.bash && source /catkin_ws/devel/setup.bash && roscore & sleep 2 && source /opt/ros/${ROS_DISTRO}/setup.bash && source /catkin_ws/devel/setup.bash && rosrun ros_flexbuild ros_test_node"]
